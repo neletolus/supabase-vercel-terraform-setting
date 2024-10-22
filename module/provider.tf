@@ -11,15 +11,26 @@ terraform {
   }
 }
 
+variable "supabase_access_token" {}
+variable "supabase_organization_id" {}
+variable "supabase_database_password" {}
+variable "supabase_linked_project" {}
+variable "supabase_url" {}
+variable "supabase_anon_key" {}
+
+variable "vercel_access_token" {}
+variable "vercel_team_id" {}
+variable "vercel_gitrepo" {}
+
 provider "supabase" {
-  access_token = file("${path.module}/vars/supabase-access-token")
+  access_token = var.supabase_access_token
 }
 
 # Create a project resource
 resource "supabase_project" "production" {
-  organization_id   = file("${path.module}/vars/supabase-organization-id")
+  organization_id   = var.supabase_organization_id
   name              = "tf-example"
-  database_password = file("${path.module}/vars/supabase-database-password")
+  database_password = var.supabase_database_password
   region            = "ap-southeast-1"
 
   lifecycle {
@@ -29,7 +40,7 @@ resource "supabase_project" "production" {
 
 # Configure api settings for the linked project
 resource "supabase_settings" "production" {
-  project_ref = file("${path.module}/vars/supabase-linked_project")
+  project_ref = var.supabase_linked_project
 
   api = jsonencode({
     db_schema            = "public,storage,graphql_public"
@@ -40,12 +51,8 @@ resource "supabase_settings" "production" {
 
 # Vercel
 provider "vercel" {
-  # Or omit this for the api_token to be read
-  # from the VERCEL_API_TOKEN environment variable
-  api_token = file("${path.module}/vars/vercel-access-token")
-
-  # Optional default team for all resources
-  team = file("${path.module}/vars/vercel-team-id")
+  api_token = var.vercel_access_token
+  team      = var.vercel_team_id
 }
 
 resource "vercel_project" "with_git" {
@@ -54,7 +61,7 @@ resource "vercel_project" "with_git" {
 
   git_repository = {
     type = "github"
-    repo = file("${path.module}/vars/vercel-gitrepo")
+    repo = var.vercel_gitrepo
   }
 }
 
@@ -62,14 +69,14 @@ resource "vercel_project" "with_git" {
 resource "vercel_project_environment_variable" "supabase_url" {
   project_id = vercel_project.with_git.id
   key        = "NEXT_PUBLIC_SUPABASE_URL"
-  value      = file("${path.module}/vars/supabase-url")
+  value      = var.supabase_url
   target     = ["production"]
 }
 
 resource "vercel_project_environment_variable" "supabase_anon_key" {
   project_id = vercel_project.with_git.id
   key        = "NEXT_PUBLIC_SUPABASE_ANON_KEY"
-  value      = file("${path.module}/vars/supabase-anon-key")
+  value      = var.supabase_anon_key
   target     = ["production"]
 }
 
